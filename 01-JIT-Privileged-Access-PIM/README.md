@@ -18,9 +18,9 @@ The goal was to ensure that the Global Administrator role is only "Eligible" for
 ## Phase 1: Configuration & Implementation
 
 ### 1. Initial State Assessment
-I audited the `cloudadmin` user and confirmed they held a Permanent "Active" assignment for the Global Administrator role. This represents a significant security risk as the account has full privileges 24/7 without extra verification.
+I audited the `cloudadmin` user and confirmed they held a Permanent "Active" assignment. This represents a high standing access risk that must be migrated to a JIT model.
 
-![Initial Permanent State](./images/image_2e5883.png)
+![Initial Permanent State](./images/Screenshot%202026-03-17%20122705.png)
 *Caption: Identifying the initial high-risk 'Permanent' state of the Global Administrator role.*
 
 ### 2. Technical Hurdle: Self-Assignment Protection
