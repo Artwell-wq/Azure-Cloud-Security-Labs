@@ -1,93 +1,85 @@
-# 🛡️ Project: Just-In-Time (JIT) Privileged Access via Microsoft Entra PIM
+# Project: Just-In-Time (JIT) Privileged Access via Microsoft Entra PIM
 
 ## Project Overview
-In a modern "Zero Trust" environment, standing privileges (accounts that are permanently admins) are a major security liability. This project demonstrates the transition from high-risk permanent administrative rights to a secure Just-In-Time (JIT) model using Microsoft Entra Privileged Identity Management (PIM).
+In a modern Zero Trust environment, standing privileges (accounts that are permanently admins) are a major security liability. This project demonstrates the transition from high-risk permanent administrative rights to a secure Just-In-Time (JIT) model using Microsoft Entra Privileged Identity Management (PIM).
 
 The goal was to ensure that the Global Administrator role is only "Eligible" for use, requiring Multi-Factor Authentication (MFA) and a business justification to activate, with a forced expiration after a set duration.
 
 ---
 
 ## Technologies & Requirements
-* Platform: Microsoft Azure / Entra ID
-* Service: Privileged Identity Management (PIM)
-* Licensing: Entra ID P2
-* Concepts: Least Privilege, JIT Access, Identity Governance
+* **Platform:** Microsoft Azure / Entra ID
+* **Service:** Privileged Identity Management (PIM)
+* **Licensing:** Entra ID P2
+* **Concepts:** Least Privilege, JIT Access, Identity Governance
 
 ---
 
 ## Phase 1: Configuration & Implementation
 
-### 1. Removing "Standing" Access
-To start with a Zero Trust baseline, I identified that the `cloudadmin` account held a permanent Global Administrator role. 
-* Action: Navigated to Entra ID > Users > Assigned Roles.
-* Step: Selected the permanent Global Administrator assignment and clicked Remove. 
-* Purpose: To ensure the account has zero administrative power until it is activated via PIM.
+### 1. Initial State Assessment
+I audited the `cloudadmin` user and confirmed they held a Permanent "Active" assignment for the Global Administrator role. This represents a significant security risk as the account has full privileges 24/7 without extra verification.
 
-> **[Screenshot: image_2e5883.png]**
-> *Caption: Identifying the "Permanent" assignment conflict and removing it to enforce the JIT workflow.*
+![Initial Permanent State](./images/image_2e5883.png)
+*Caption: Identifying the initial high-risk 'Permanent' state of the Global Administrator role.*
 
-### 2. Configuring Governance Policies
-I defined the "guardrails" for the Global Administrator role within the PIM dashboard.
-* Activation Settings:
-    * Max Duration: 2 Hours.
-    * MFA: Required on activation.
-    * Justification: Required for audit logs.
-    * Approval: Set to "None" for automated JIT in this lab environment.
+### 2. Technical Hurdle: Self-Assignment Protection
+While attempting to remove the permanent assignment, Azure triggered a safety error: *"You cannot update self assignment for this role"*. This is a built-in guardrail to prevent administrators from accidentally locking themselves out.
 
-> **[Screenshot: image_2fc197.png]**
-> *Caption: Configuring the PIM role settings to enforce MFA and justification.*
+* **Resolution:** I utilized a secondary administrator account to modify the `cloudadmin` role assignment.
+
+![Self Assignment Error](./images/Screenshot%202026-03-17%20122941.png)
+*Caption: The specific Azure safety error encountered when trying to modify one's own permanent privileges.*
+
+### 3. Transitioning to Eligibility
+Using the PIM Quick Start dashboard, I moved the user from an "Active" permanent assignment to an "Eligible" assignment.
+
+![PIM Dashboard](./images/Screenshot%202026-03-17%20110102.png)
+*Caption: Navigating the PIM dashboard to manage role eligibility.*
+
+![Setting Eligibility](./images/Screenshot%202026-03-17%20110900.png)
+*Caption: Configuring the user as 'Eligible' rather than 'Permanent'.*
+
+### 4. Configuring Governance Policies
+I defined strict "guardrails," including a 2-hour maximum duration and mandatory Azure MFA.
+
+![Role Settings](./images/Screenshot%202026-03-17%20130625.png)
+*Caption: Defining activation requirements, including mandatory MFA and justification.*
 
 ---
 
 ## Phase 2: Challenges & Technical Resolutions
-During the implementation, several real-world technical hurdles appeared. I documented the troubleshooting process below to demonstrate cloud-admin competency.
 
-| Challenge | Root Cause | Resolution |
+| Challenge | Detection | Resolution |
 | :--- | :--- | :--- |
-| "Activate Role Failed" Error | Conflict between a "Permanent" role and an "Eligible" PIM assignment. | **Action:** Deleted the permanent role assignment from the user's main profile. This allowed PIM to become the sole authority for role elevation. |
-| Missing "Settings" Tab | UI Update: The Settings menu was not on the main sidebar. | **Action:** Discovered that settings are now located *inside* the specific role. Navigated to PIM > Roles > Global Administrator > Role Settings. |
-| "Already Exists" Loop | Browser caching of old security tokens/cookies. | **Action:** Utilized Incognito/InPrivate mode to force a clean session and used `aka.ms/pim/tokenrefresh` to update permissions. |
-| Validation Delay | Entra ID propagation lag (5-15 mins). | **Action:** Cleared filters, refreshed the PIM dashboard, and waited for the global catalog to sync. |
-
-> **[Screenshot: image_2e72ca.png]**
-> *Caption: The "Role assignment already exists" error encountered during troubleshooting.*
+| **Self-Assignment Lock** | | Switched to a secondary GA account to modify status. |
+| **Search/Filter UI Delay** | | Cleared dashboard filters and refreshed the browser. |
+| **"Already Exists" Conflict** | | Deleted redundant permanent assignments. |
 
 ---
 
 ## Phase 3: Testing & Final Verification
-The final phase was to prove that the "Just-In-Time" mechanism works as intended.
 
-### 1. The Activation Request
-As the `cloudadmin` user, I navigated to PIM > My Roles. The Global Administrator role appeared under Eligible Assignments. I clicked Activate and was prompted to:
-1.  Complete a fresh MFA challenge.
-2.  Provide a Justification: "Activating GA permissions for security policy configuration and audit."
+### 1. Requesting Access
+The Global Administrator role now correctly appears as an **Eligible assignment**.
 
-> **[Screenshot: image_2f5060.png]**
-> *Caption: The end-user JIT activation screen showing the duration slider and justification box.*
+![Eligible Status](./images/Screenshot%202026-03-17%20132155.png)
+*Caption: The user no longer has standing rights and must 'Activate' to gain them.*
 
-### 2. Final Success Verification
-After clicking Activate, the system processed the request. I verified success by checking the Active Assignments tab.
-* Role: Global Administrator
-* Status: Activated
-* End Time: 1 hours 40 minutes (Counting down)
+### 2. Justification and Elevation
+I initiated activation, providing a mandatory justification: *"Testing JIT"*.
 
-**Verification Result:** The account successfully gained admin rights, but the portal clearly shows these rights are temporary and will vanish automatically when the timer hits zero.
+![Activation Request](./images/Screenshot%202026-03-17%20132349.png)
+*Caption: The end-user activation screen requiring a duration and business reason.*
+
+### 3. Final Success Verification
+The activation was successful. The role is now listed under **Active Assignments** with a specific expiration timestamp.
+
+![Successful JIT Activation](./images/Screenshot%202026-03-17%20132520.png)
+*Caption: Verification of JIT success. Privileges are active but temporary.*
 
 ---
 
 ## Key Takeaways
-* Reduced Attack Surface: Attackers cannot exploit a compromised admin account if that account doesn't have "active" rights.
-* Audit Readiness: Every activation is logged with a justification, making security audits much faster.
-* Identity as the Perimeter: This project proves that modern security relies on controlling how and when identities are used, rather than just relying on passwords.
-
----
-
-## Troubleshooting & Collaboration
-During this deployment, I encountered several real-world hurdles. I collaborated with an AI assistant to diagnose and resolve these technical roadblocks, simulating a real-world escalation process.
-
-| Challenge | Detection | Resolution |
-| :--- | :--- | :--- |
-| The "Missing Settings" Menu | Could not find the "Settings" tab under Microsoft Entra roles. | Identified that settings are now nested inside the specific role name rather than on the main sidebar. |
-| "Activate Role Failed" Error | Received a red error stating: "The Role assignment already exists." | Removed the permanent assignment, cleared browser cache (Incognito), and forced a token refresh. |
-| MFA Loop / Verification Check | The "Activate" button remained greyed out or threw a verification error. | Identified that PIM activation requires a "fresh" MFA claim. Solved by using an InPrivate/Incognito window. |
-| Token Sync Latency | Changes were not reflecting in the PIM dashboard immediately. | Implemented a logout/login period and used the token refresh URL to force a sync. |
+* **Operational Security:** The self-assignment error proved the necessity of "Break-Glass" accounts.
+* **Attack Surface Reduction:** JIT ensures a compromised credential does not grant immediate admin access.
